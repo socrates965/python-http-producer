@@ -61,7 +61,13 @@ def receive_data():
             else:
                 return jsonify({'error': 'Invalid message type'}), 400
         kafka_producer.flush()
-        logger.info(f"Successfuly sent message {message} to {topic}")
+        
+        log_message = json.dumps(message)
+        if len(log_message) > 40:
+            logger.info(f"Successfuly sent message {json.dumps(message)[:40]}... to {topic}")
+        else:
+            logger.info(f"Successfuly sent message {message} to {topic}")
+            
         return jsonify({'message': 'Data sent to Kafka successfully'}), 201
     except AuthenticationFailedError as e:
         logger.error(e)
