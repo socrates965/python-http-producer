@@ -29,7 +29,7 @@ node('maven') {
 
     stage ('App Push') {
         dir("source") {
-            // sh "mkdir -p build-folder/target/ build-folder/apps/ "
+            sh "mkdir -p build-folder/target/ build-folder/apps/ "
             sh "cp dockerfile build-folder/Dockerfile"
             sh "cp main.py build-folder/main.py"
             sh "cp requirements.txt build-folder/requirements.txt"
