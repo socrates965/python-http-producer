@@ -1,8 +1,9 @@
-from kafka.errors import AuthenticationFailedError, MessageSizeTooLargeError, UnknownTopicOrPartitionError, KafkaError # type: ignore
+from kafka.errors import AuthenticationFailedError, MessageSizeTooLargeError, UnknownTopicOrPartitionError, KafkaError, NoBrokersAvailable, TopicAuthorizationFailedError # type: ignore
 from flask import Flask, request, jsonify # type: ignore
 from kafka import KafkaProducer # type: ignore
 from CustomLogger import CustomLogger
 import json
+import copy
 import sys
 import os
 
@@ -49,37 +50,58 @@ def receive_data():
     if message_type == 'json':
         producer_config["value_serializer"] = lambda v: json.dumps(v).encode('utf-8')
 
-    kafka_producer = KafkaProducer(**producer_config)  
-
-    try:
-        for _ in message:
-            if message_type == 'string':
-                kafka_producer.send(topic, value=_.encode('utf-8'))
-            elif message_type == 'json':
-                kafka_producer.send(topic, value=_)
-            else:
-                return jsonify({'error': 'Invalid message type'}), 400
-        kafka_producer.flush()
-        
-        log_message = json.dumps(message)
-        if len(log_message) > 40:
-            logger.info(f"Successfuly sent message {json.dumps(message)[:40]}... to {topic}")
-        else:
-            logger.info(f"Successfuly sent message {message} to {topic}")
+    return_message = jsonify({'message': 'Data sent to Kafka successfully'}), 201
+    i=0
+    kafka_producer: KafkaProducer= None
+    
+    queue = copy.deepcopy(message)
+    while i<=5:
+        try:
+            i+=1
+            kafka_producer = init_broker(producer_config)
+            while queue:
+                if message_type == 'string':
+                    kafka_producer.send(topic, value=queue.pop(0).encode('utf-8'))
+                elif message_type == 'json':
+                    kafka_producer.send(topic, value=queue.pop(0))
+            # for _ in message:
+                # if message_type == 'string':
+                #     kafka_producer.send(topic, value=_.encode('utf-8'))
+                # elif message_type == 'json':
+                #     kafka_producer.send(topic, value=_)
+                else:
+                    return jsonify({'error': 'Invalid message type'}), 400
+            kafka_producer.flush()
             
-        return jsonify({'message': 'Data sent to Kafka successfully'}), 201
-    except AuthenticationFailedError as e:
-        logger.error(e)
-        return jsonify({'error': 'Invalid Kafka authentication: ' + str(e)}), 401
-    except MessageSizeTooLargeError as e:
-        logger.error(e)
-        return jsonify({'error': 'Message size too large: ' + str(e)}), 413
-    except UnknownTopicOrPartitionError as e:
-        logger.error(e)
-        return jsonify({'error': 'Unknown topic or partition: ' + str(e)}), 404
-    except KafkaError as e:
-        logger.error(e)
-        return jsonify({'error': 'Failed to send message to Kafka: ' + str(e)}), 500
+            log_message = json.dumps(message)
+            if len(log_message) > 40:
+                logger.info(f"Successfuly sent message {json.dumps(message)[:40]}... to {topic}")
+            else:
+                logger.info(f"Successfuly sent message {message} to {topic}")
+                
+            break
+        except AuthenticationFailedError as e:
+            logger.error(e)
+            return_message = jsonify({'error': 'Invalid Kafka authentication: ' + str(e)}), 401
+        except MessageSizeTooLargeError as e:
+            logger.error(e)
+            return_message = jsonify({'error': 'Message size too large: ' + str(e)}), 413
+        except UnknownTopicOrPartitionError as e:
+            logger.error(e)
+            return_message = jsonify({'error': 'Unknown topic or partition: ' + str(e)}), 404
+        except TopicAuthorizationFailedError as e:
+            logger.error(e)
+            return_message = jsonify({'error': 'Topic Authorization Error, Check your kafka config: ' + str(e)}), 404
+        except NoBrokersAvailable as e:
+            logger.error(e)
+            return_message = jsonify({'error': 'Check your kafka url, username, password config: ' + str(e)}), 404
+        except KafkaError as e:
+            logger.error(e)
+            return_message = jsonify({'error': 'Failed to send message to Kafka: ' + str(e)}), 500
+    
+    if kafka_producer:
+        kafka_producer.close()
+    return return_message
 
 def body_validation(data):
     kafka_config = data.get('kafka_config')
@@ -115,6 +137,9 @@ def body_validation(data):
         return jsonify({'error': 'Invalid data format! Must be a list(array)!'}), 400
     return False
     
+def init_broker(producer_config):
+    return KafkaProducer(**producer_config)
+    
 # development purpose only
 # if __name__ == '__main__':
 #     app.run(debug=True)
@@ -122,4 +147,4 @@ def body_validation(data):
 # production
 if __name__ == "__main__":
     from waitress import serve # type: ignore
-    serve(app, host="0.0.0.0", port=8080, threads=200)
+    serve(app, host="0.0.0.0", port=8080, threads=50)
