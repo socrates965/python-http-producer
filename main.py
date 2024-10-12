@@ -98,9 +98,9 @@ def receive_data():
         except KafkaError as e:
             logger.error(e)
             return_message = jsonify({'error': 'Failed to send message to Kafka: ' + str(e)}), 500
-    
-    if kafka_producer:
-        kafka_producer.close()
+        finally:
+            if kafka_producer:
+                kafka_producer.close()
     return return_message
 
 def body_validation(data):
