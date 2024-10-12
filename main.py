@@ -34,11 +34,12 @@ def receive_data():
         "sasl_plain_password":password,
         "security_protocol":'SASL_SSL',
         "max_request_size":104857600,  # 100MB
-        "request_timeout_ms":60000,
+        "request_timeout_ms":120000,
         "ssl_check_hostname":False,
         # "ssl_cafile":"CARoot.pem",
+        "max_in_flight_requests_per_connection": 50,
         "compression_type":"gzip",
-        "batch_size": 100000,
+        # "batch_size": 100000,
         "linger_ms": 100,
         "retries":sys.maxsize,
         "acks":"all"
