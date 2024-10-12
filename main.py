@@ -48,10 +48,6 @@ def receive_data():
     
     if message_type == 'json':
         producer_config["value_serializer"] = lambda v: json.dumps(v).encode('utf-8')
-    elif message_type == 'string' and isinstance(message, list):
-        message1=json.dumps(message)
-        logger.warn(f"Wrong message type for string! \"{message1[:40]}...\" is array, converting to string")
-        message=message1
 
     kafka_producer = KafkaProducer(**producer_config)  
 
