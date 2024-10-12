@@ -55,10 +55,10 @@ def receive_data():
     kafka_producer: KafkaProducer= None
     
     queue = copy.deepcopy(message)
+    kafka_producer = init_broker(producer_config)
     while i<=5:
         try:
             i+=1
-            kafka_producer = init_broker(producer_config)
             while queue:
                 if message_type == 'string':
                     kafka_producer.send(topic, value=queue.pop(0).encode('utf-8'))
@@ -98,9 +98,9 @@ def receive_data():
         except KafkaError as e:
             logger.error(e)
             return_message = jsonify({'error': 'Failed to send message to Kafka: ' + str(e)}), 500
-        finally:
-            if kafka_producer:
-                kafka_producer.close()
+
+    if kafka_producer:
+        kafka_producer.close()
     return return_message
 
 def body_validation(data):
