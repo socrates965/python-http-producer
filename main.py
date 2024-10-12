@@ -38,6 +38,8 @@ def receive_data():
         "ssl_check_hostname":False,
         # "ssl_cafile":"CARoot.pem",
         "compression_type":"gzip",
+        "batch_size": 100000,
+        "linger_ms": 100,
         "retries":sys.maxsize,
         "acks":"all"
     }
