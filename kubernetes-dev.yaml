@@ -1,0 +1,77 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: python-http-producer
+  namespace: testpy
+spec:
+  type: LoadBalancer
+  selector:
+    app: python-http-producer
+  ports:
+  - protocol: TCP
+    port: 8080
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python-http-producer
+  namespace: testpy
+  labels:
+    app: python-http-producer
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0%
+      maxUnavailable: 25%
+  minReadySeconds: 5
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: python-http-producer
+  template:
+    metadata:
+      labels:
+        app: python-http-producer
+    spec:
+      containers:
+      - name: python-http-producer
+        image: $REGISTRY/$HARBOR_NAMESPACE/$APP_NAME:$BUILD_NUMBER
+        ports:
+        - containerPort: 8000
+        imagePullPolicy: Always
+        resources:
+          limits:
+            cpu: "0.5"
+            memory: "500Mi"
+          requests:
+            cpu: "0.1"
+            memory: "100Mi"
+        #envFrom:
+        #- secretRef:
+        #    name: env-python-http-producer
+      imagePullSecrets:
+      - name: $IMAGEPULLSECRET
+
+---
+
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: python-http-producer
+  namespace: testpy
+spec:
+  maxReplicas: 1
+  minReplicas: 1
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: python-http-producer
+  metrics:
+  - type: Resource
+    resource:
+      name: memory
+      targetAverageUtilization: 85
