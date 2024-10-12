@@ -37,7 +37,7 @@ node('maven') {
             def tag = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim();
             def tokenLocal = sh(script: 'oc whoami -t', returnStdout: true).trim()
             
-            sh "oc delete bc ${appName}"
+            //sh "oc delete bc ${appName}"
             sh "cat build-folder/Dockerfile | oc new-build -D - --name ${appName} || true"
             sh "oc start-build ${appName} --from-dir=build-folder/. --follow --wait "
             //sleep(time:600,unit:"SECONDS")
