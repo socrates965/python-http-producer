@@ -33,6 +33,7 @@ node('maven') {
             sh "cp dockerfile build-folder/Dockerfile"
             sh "cp main.py build-folder/main.py"
             sh "cp requirements.txt build-folder/requirements.txt"
+            sh "cp CustomLogger.py build-folder/CustomLogger.py"
 
             def tag = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim();
             def tokenLocal = sh(script: 'oc whoami -t', returnStdout: true).trim()
