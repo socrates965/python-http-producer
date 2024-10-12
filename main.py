@@ -97,8 +97,8 @@ def body_validation(data):
         return jsonify({'error': 'Invalid request body! No "metadata"'}), 400
     
     message_type = metadata.get('message_type').lower()
-    if not message_type:
-        return jsonify({'error': 'Invalid message type! Must be either string or json'}), 400
+    if message_type not in ['string', 'json']:
+        return jsonify({'error': "Invalid message type! Must be either 'string' or 'json'"}), 400
     
     if not message:
         return jsonify({'error': 'Invalid request body! No "data"'}), 400
